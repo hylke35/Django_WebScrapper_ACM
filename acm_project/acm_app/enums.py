@@ -1,5 +1,6 @@
 import enum
 
+
 class CompanyStatus(enum.Enum):
     GRANTED = "GRANTED"
     REVOKED = "REVOKED"

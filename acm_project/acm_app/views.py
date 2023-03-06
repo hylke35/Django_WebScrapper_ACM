@@ -1,12 +1,12 @@
 from typing import Union
 from django.shortcuts import render
 from django.http import HttpResponse
-
 from .models import Supplier, ScannedSupplier
 from .enums import CompanyStatus
-import requests
 from bs4 import BeautifulSoup
 from PIL import Image
+
+import requests
 
 
 def index(request):
@@ -51,7 +51,6 @@ def update(request):
                 Supplier.objects.create(name = name, status = status.name)
                 notify(name, status)
                 
-   
     suppliers = Supplier.objects.filter(status = CompanyStatus.GRANTED.name)
 
     return render(request, 'list.html', {'suppliers' : suppliers})
@@ -192,7 +191,7 @@ def create_scanned_supplier(logo: str, name: str, domain: str):
 
 
 #Vanwege tijd niet volledig geimplementeerd maar zou een email sturen via een SMTP Server
-#Hier een voorbeeld van hoe ik dit zou kunnen doen: https://realpython.com/python-send-email/
+#Hier een voorbeeld van hoe ik dit had kunnen doen: https://realpython.com/python-send-email/
 def notify(name, status):
     """
     Notify admin email when a new supplier is added or a previous supplier has its rights revoked.
