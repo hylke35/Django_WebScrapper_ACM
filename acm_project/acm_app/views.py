@@ -1,3 +1,4 @@
+from typing import Union
 from django.shortcuts import render
 from django.http import HttpResponse
 
@@ -5,6 +6,7 @@ from .models import Supplier, ScannedSupplier
 from .enums import CompanyStatus
 import requests
 from bs4 import BeautifulSoup
+from PIL import Image
 
 
 def index(request):
@@ -19,7 +21,10 @@ def update(request):
     Scrap ACM webpage to retrieve new electricity suppliers and save them in database.
     """
 
-    scan_supplier("Engie")
+    test = scan_supplier("ENGIE Nederland Retail B.V.")
+    print(test.name)
+    print(test.website)
+    print(test.logo)
     # response = requests.get("https://www.acm.nl/nl/onderwerpen/energie/energiebedrijven/vergunningen/vergunninghouders-elektriciteit-en-gas#faq_81128")
     # soup = BeautifulSoup(response.text, 'html.parser')
     # table = soup.find('table', {'title': 'Register vergunninghouders elektriciteit kleinverbruik'})
@@ -60,7 +65,7 @@ def find_status(last_status) -> CompanyStatus:
         return CompanyStatus.UNKNOWN
 
 
-def scan_supplier(name: str):
+def scan_supplier(name: str) -> Union[ScannedSupplier, None]:
     """
 
     """
@@ -70,17 +75,79 @@ def scan_supplier(name: str):
     
     query_name = name
 
+    if 'Eneco' in query_name:
+        query_name = 'Eneco'
+
+    if 'ENGIE' in query_name:
+        query_name = 'Engie'
+
     if 'B.V.' in name:
         query_name = query_name.replace('B.V.', '')
+    
+    scanned_supplier = get_scanned_supplier(query_name)
+
+    if scanned_supplier is None:
+        query_name = query_name.replace('Energie', '')
+    else:
+        return scanned_supplier
+
+    scanned_supplier = get_scanned_supplier(query_name)
+
+    if scanned_supplier is None:
+        query_name = query_name.replace(' ', '')
+    else:
+        return scanned_supplier
+    
+    scanned_supplier = get_scanned_supplier(query_name)
+
+    if scanned_supplier is None:
+        query_name = query_name + '.nl'
+    else:
+        return scanned_supplier
+    
+    scanned_supplier = get_scanned_supplier(query_name)
+
+    if scanned_supplier is None:
+        return None
+    else:
+        return scanned_supplier
+
+
+def get_scanned_supplier(name: str) -> Union[ScannedSupplier, None]:
 
     url = "https://autocomplete.clearbit.com/v1/companies/suggest?query=" + name
-    print(url)
     request = requests.get(url)
-    response = request.json()
 
-    #More than one company found with this name
+    if request.ok:
+        response = request.json()
+    else:
+        return None
+    
+    #Nothing found.
+    if len(response) == 0:
+        return None
+
+    if len(response) == 1:
+        return create_scanned_supplier(response[0].get('logo'), response[0].get('name'), response[0].get('domain'))
+
+    #More than one company found with this name.
     if len(response) > 1:
-        
+        for company in response:
+            domain = company.get('domain')
+            if ".nl" in domain:
+                return create_scanned_supplier(company.get('logo'), company.get('name'), company.get('domain'))
+            else:
+                return None
+    
+   
+def save_logo(logo_url: str, name: str):
+    logo = Image.open(requests.get(logo_url, stream=True).raw)
+    image_name = name.replace(' ', '')
+    save_path = f'acm_app/images/{image_name}.png'
+    logo.save(save_path, format="png")
+    return save_path
     
 
-    
+def create_scanned_supplier(logo: str, name: str, domain: str): 
+    save_path = save_logo(logo, name)
+    return ScannedSupplier(name = name, logo = save_path, website = domain)
