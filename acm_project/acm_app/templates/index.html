@@ -1,15 +1,11 @@
-<html>
-    <head>
-        <title>ACM Electricity Supplier Search</title>
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script src="../static/main.js"></script>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-    </head>
-    <body>
-        <h1>HELLO!</h1>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content rounded">
+    <h2 class="welcome">Welcome, please press the button below to retrieve the list of electricity suppliers.</h2>
         <form action="{% url 'update' %}" method="post">
             {% csrf_token %}
-            <button type="submit" name="update" class="btn btn-primary btn-sm">Update</button>
+            <button type="submit" name="update" class="btn btn-light">Update</button>
         </form>
-    </body>
-</html>
+</div>
+{% endblock %}

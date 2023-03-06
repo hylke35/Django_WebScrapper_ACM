@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="list_content rounded">
+        <h2 class="list_title" style="color: white;">Electricity Suppliers List:</h2>
+        <ul>
+        {% for supplier in suppliers %}
+        <li>
+            <form action="{% url 'scan_company' supplier.name %}" method="post">
+                {% csrf_token %}
+                <button type="submit" name="scan_company" class="btn btn-light btn-sm"><b>{{ supplier.name }}</b></button>
+            </form>
+        </li>
+    {% empty %}
+
+    {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

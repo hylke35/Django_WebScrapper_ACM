@@ -21,34 +21,63 @@ def update(request):
     Scrap ACM webpage to retrieve new electricity suppliers and save them in database.
     """
 
-    test = scan_supplier("ENGIE Nederland Retail B.V.")
-    print(test.name)
-    print(test.website)
-    print(test.logo)
-    # response = requests.get("https://www.acm.nl/nl/onderwerpen/energie/energiebedrijven/vergunningen/vergunninghouders-elektriciteit-en-gas#faq_81128")
-    # soup = BeautifulSoup(response.text, 'html.parser')
-    # table = soup.find('table', {'title': 'Register vergunninghouders elektriciteit kleinverbruik'})
-    # table_body = table.find('tbody')
-    # rows = table_body.find_all('tr')
+    response = requests.get("https://www.acm.nl/nl/onderwerpen/energie/energiebedrijven/vergunningen/vergunninghouders-elektriciteit-en-gas#faq_81128")
+    soup = BeautifulSoup(response.text, 'html.parser')
+    table = soup.find('table', {'title': 'Register vergunninghouders elektriciteit kleinverbruik'})
+    table_body = table.find('tbody')
+    rows = table_body.find_all('tr')
 
-    # for row in rows:
-    #     cols = row.find_all('td')
+    for row in rows:
+        cols = row.find_all('td')
 
-    #     name = "Unknown"
-    #     status = CompanyStatus.UNKNOWN
+        name = "Unknown"
+        status = CompanyStatus.UNKNOWN
 
-    #     for iteration, col in enumerate(cols):
-    #         if not iteration:
-    #             name = col.contents[0]
-    #         else:
-    #             last_status = col.find_all('a')[-1].contents[0]
-    #             status = find_status(last_status)
+        for iteration, col in enumerate(cols):
+            if not iteration:
+                name = col.contents[0]
+            else:
+                last_status = col.find_all('a')[-1].contents[0]
+                status = find_status(last_status)
         
-    #     #Check if supplier already exists if not, save new supplier.
-    #     if Supplier.objects.filter(name = name).exists() is False and name != "Unknown":
-    #         Supplier.objects.create(name = name, status = status.name)
+            #Check if supplier already exists if not, save new supplier.
+        if Supplier.objects.filter(name = name, status = status.name).exists() is False and name != "Unknown":
+            if Supplier.objects.filter(name = name).exists():
+                supplier_to_change = Supplier.objects.filter(name = name).first()
+                supplier_to_change.status = status.name
+                supplier_to_change.save()
+                notify(name, status)
+            else:
+                Supplier.objects.create(name = name, status = status.name)
+                notify(name, status)
+                
+   
+    suppliers = Supplier.objects.filter(status = CompanyStatus.GRANTED.name)
 
-    return render(request, 'index.html')
+    return render(request, 'list.html', {'suppliers' : suppliers})
+
+
+def list(request):
+    """
+    List of electricity suppliers page.
+    """
+    suppliers = Supplier.objects.filter(status = CompanyStatus.GRANTED.name)
+    return render(request, 'list.html', {'suppliers' : suppliers})
+
+
+def detail(request, name):
+    """
+    Detail page to inspect company data
+    """
+    supplier = Supplier.objects.filter(name = name).first()
+    scanned_supplier = scan_supplier(name)
+    if scanned_supplier:
+        if ScannedSupplier.objects.filter(name = scanned_supplier.name).exists() is False:
+            scanned_supplier.save()
+            supplier.scanned_supplier = scanned_supplier
+            supplier.save()
+
+    return render(request, 'detail.html', {'scanned_supplier' : scanned_supplier})
 
 
 def find_status(last_status) -> CompanyStatus:
@@ -67,7 +96,7 @@ def find_status(last_status) -> CompanyStatus:
 
 def scan_supplier(name: str) -> Union[ScannedSupplier, None]:
     """
-
+    Attempts multiple methods of uncovering the 'correct' name of the company to then scan for company data.
     """
     #Check if ScannedSupplier already exists if so, return.
     if ScannedSupplier.objects.filter(name = name).exists():
@@ -114,7 +143,9 @@ def scan_supplier(name: str) -> Union[ScannedSupplier, None]:
 
 
 def get_scanned_supplier(name: str) -> Union[ScannedSupplier, None]:
-
+    """
+    Checks if the company can be found in the response.
+    """
     url = "https://autocomplete.clearbit.com/v1/companies/suggest?query=" + name
     request = requests.get(url)
 
@@ -141,13 +172,35 @@ def get_scanned_supplier(name: str) -> Union[ScannedSupplier, None]:
     
    
 def save_logo(logo_url: str, name: str):
+    """
+    Grab the logo from and link and store it locally.
+    """
     logo = Image.open(requests.get(logo_url, stream=True).raw)
     image_name = name.replace(' ', '')
-    save_path = f'acm_app/images/{image_name}.png'
+    save_path = f'acm_app/static/{image_name}.png'
     logo.save(save_path, format="png")
-    return save_path
+
+    return f'{image_name}.png'
     
 
 def create_scanned_supplier(logo: str, name: str, domain: str): 
+    """
+    Create the actual ScannedSupplier object to be saved later on.
+    """
     save_path = save_logo(logo, name)
     return ScannedSupplier(name = name, logo = save_path, website = domain)
+
+
+#Vanwege tijd niet volledig geimplementeerd maar zou een email sturen via een SMTP Server
+#Hier een voorbeeld van hoe ik dit zou kunnen doen: https://realpython.com/python-send-email/
+def notify(name, status):
+    """
+    Notify admin email when a new supplier is added or a previous supplier has its rights revoked.
+    """
+
+    if status == CompanyStatus.REVOKED:
+        print(f'Supplier: {name} has had its license: Revoked')
+    elif status == CompanyStatus.GRANTED:
+        print(f'A new Supplier has been added: {name}')
+    else:
+        return
