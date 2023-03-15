@@ -2,7 +2,7 @@
 
 ### Django coding assignment:
 
-#### Build an application (in Python) that stores all energy suppliers from the ACM site every day.
+#### Build an application (in Python) that stores all energy suppliers from the ACM site.
 <p>
 1. Display a list of the different scrapped suppliers.
 <br>
