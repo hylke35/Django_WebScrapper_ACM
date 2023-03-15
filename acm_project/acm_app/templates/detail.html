@@ -6,7 +6,7 @@
     {% if scanned_supplier%}
         <div class="name">
             <h3>{{ scanned_supplier.name }}</h3>
-            <h3>{{ scanned_supplier.website }}</h3>
+            <h3><a href="https://{{ scanned_supplier.website }}">{{ scanned_supplier.website }}</a></h3>
         </div>
         <div class="image">
             <img src="{% static scanned_supplier.logo %}" class="rounded float-end" alt="test">

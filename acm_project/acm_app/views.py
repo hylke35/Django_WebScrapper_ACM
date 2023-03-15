@@ -22,6 +22,10 @@ def update(request):
     """
 
     response = requests.get("https://www.acm.nl/nl/onderwerpen/energie/energiebedrijven/vergunningen/vergunninghouders-elektriciteit-en-gas#faq_81128")
+
+    if not response.ok:
+        return render(request, 'index.html', {'error' : 'ERROR: Unable to connect to ACM website'})
+    
     soup = BeautifulSoup(response.text, 'html.parser')
     table = soup.find('table', {'title': 'Register vergunninghouders elektriciteit kleinverbruik'})
     table_body = table.find('tbody')
@@ -108,6 +112,9 @@ def scan_supplier(name: str) -> Union[ScannedSupplier, None]:
 
     if 'ENGIE' in query_name:
         query_name = 'Engie'
+
+    if 'Essent' in query_name:
+        query_name = 'Essent'
 
     if 'B.V.' in name:
         query_name = query_name.replace('B.V.', '')

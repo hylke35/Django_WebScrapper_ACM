@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if error %}
+<script>
+    alert('{{ error }}')
+</script>
+{% endif %}
 <div class="content rounded">
     <h2 class="welcome">Welcome, please press the button below to retrieve the list of electricity suppliers.</h2>
         <form action="{% url 'update' %}" method="post">
