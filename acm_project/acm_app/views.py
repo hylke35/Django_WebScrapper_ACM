@@ -50,10 +50,8 @@ def update(request):
                 supplier_to_change = Supplier.objects.filter(name = name).first()
                 supplier_to_change.status = status.name
                 supplier_to_change.save()
-                notify(name, status)
             else:
                 Supplier.objects.create(name = name, status = status.name)
-                notify(name, status)
                 
     suppliers = Supplier.objects.filter(status = CompanyStatus.GRANTED.name)
 
@@ -195,18 +193,3 @@ def create_scanned_supplier(logo: str, name: str, domain: str):
     """
     save_path = save_logo(logo, name)
     return ScannedSupplier(name = name, logo = save_path, website = domain)
-
-
-#Vanwege tijd niet volledig geimplementeerd maar zou een email sturen via een SMTP Server
-#Hier een voorbeeld van hoe ik dit had kunnen doen: https://realpython.com/python-send-email/
-def notify(name, status):
-    """
-    Notify admin email when a new supplier is added or a previous supplier has its rights revoked.
-    """
-
-    if status == CompanyStatus.REVOKED:
-        print(f'Supplier: {name} has had its license: Revoked')
-    elif status == CompanyStatus.GRANTED:
-        print(f'A new Supplier has been added: {name}')
-    else:
-        return
